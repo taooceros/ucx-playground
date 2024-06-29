@@ -1,0 +1,5 @@
+[wrap-git]
+directory = backward-cpp
+url = https://github.com/bombela/backward-cpp
+revision = master
+method=cmake

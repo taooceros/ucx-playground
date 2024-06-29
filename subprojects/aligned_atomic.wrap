@@ -1,0 +1,4 @@
+[wrap-git]
+directory = aligned_atomic
+url = https://github.com/tnagler/aligned_atomic.git
+revision = master

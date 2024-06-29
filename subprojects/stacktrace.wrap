@@ -1,0 +1,9 @@
+[wrap-git]
+directory = stacktrace
+url = https://github.com/Febbe/stacktrace.git
+revision = main
+method=cmake
+
+
+[provide]
+stacktrace = stacktrace_dep

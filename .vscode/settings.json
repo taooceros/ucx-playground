@@ -1,0 +1,15 @@
+{
+    "C_Cpp.default.configurationProvider": "mesonbuild.mesonbuild",
+    "C_Cpp.default.compileCommands": "/home/hongtao/rshim-mmio/broker_rdma/builddir/compile_commands.json",
+    "clangd.arguments": [
+        "-log=verbose",
+        "-pretty",
+        "--background-index",
+        //"--query-driver=/bin/arm-buildroot-linux-gnueabihf-g++", //for cross compile usage
+        "--compile-commands-dir=/home/hongtao/ucx-playground/builddir/"
+    ],
+    "cmake.configureOnOpen": true,
+    "julia.executablePath": "/home/hongtao/.juliaup/bin/julia",
+    "mesonbuild.configureOnOpen": true,
+    "cmake.sourceDirectory": "/home/hongtao/ucx-playground/subprojects/range-v3-0.12.0"
+}
