@@ -4,7 +4,13 @@
 #include "ucx_helper.hpp"
 #include <arpa/inet.h>
 #include <cstdio>
+#include <ucp/api/ucp_def.h>
 
+void listener_callback(ucp_conn_request_h conn_request, void *arg) {
+    auto task =
+        static_cast<async::async_auto_reset_event<ucp_conn_request_h> *>(arg);
+    task->set_or(conn_request);
+}
 
 UcpListener::UcpListener(ucp_worker_h &worker, std::string addr, uint16_t port)
     : worker(worker) {
@@ -20,7 +26,7 @@ UcpListener::UcpListener(ucp_worker_h &worker, std::string addr, uint16_t port)
     params.sockaddr.addr = (const struct sockaddr *)&listen_addr;
     params.sockaddr.addrlen = sizeof(listen_addr);
     params.conn_handler.arg = &task;
-    params.conn_handler.cb = task.register_callback;
+    params.conn_handler.cb = listener_callback;
 
     auto status = ucp_listener_create(worker, &params, &listener);
 
