@@ -7,14 +7,14 @@
 
 namespace async {
 
-template <typename T> class async_auto_reset_event_operation;
+template <typename T> class auto_reset_event_operation;
 
-template <typename T> class async_auto_reset_event {
+template <typename T> class auto_reset_event {
   public:
-    async_auto_reset_event(bool signaled = false) : signaled_(signaled) {}
+    auto_reset_event(bool signaled = false) : signaled_(signaled) {}
 
-    async_auto_reset_event_operation<T> operator co_await() noexcept {
-        return async_auto_reset_event_operation(*this);
+    auto_reset_event_operation<T> operator co_await() noexcept {
+        return auto_reset_event_operation(*this);
     }
 
     void set_or(T data,
@@ -39,20 +39,20 @@ template <typename T> class async_auto_reset_event {
     std::optional<T> data;
     std::coroutine_handle<> waiter_handle;
 
-    friend class async_auto_reset_event_operation<T>;
+    friend class auto_reset_event_operation<T>;
 };
 
-template <typename T> class async_auto_reset_event_operation {
+template <typename T> class auto_reset_event_operation {
   public:
-    async_auto_reset_event_operation() noexcept = default;
+    auto_reset_event_operation() noexcept = default;
 
-    explicit async_auto_reset_event_operation(
-        async_auto_reset_event<T> &event) noexcept {
+    explicit auto_reset_event_operation(
+        auto_reset_event<T> &event) noexcept {
         m_event = &event;
     }
 
-    async_auto_reset_event_operation(
-        const async_auto_reset_event_operation &other) noexcept = default;
+    auto_reset_event_operation(
+        const auto_reset_event_operation &other) noexcept = default;
 
     bool await_ready() const noexcept { return m_event->signaled_; }
     bool await_suspend(std::coroutine_handle<> awaiter) noexcept {
@@ -65,9 +65,9 @@ template <typename T> class async_auto_reset_event_operation {
     T await_resume() const noexcept { return m_event->data.value(); }
 
   private:
-    friend class async_auto_reset_event<T>;
+    friend class auto_reset_event<T>;
 
-    async_auto_reset_event<T> *m_event;
+    auto_reset_event<T> *m_event;
 };
 
 } // namespace async

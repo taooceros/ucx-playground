@@ -13,7 +13,7 @@
 class UcpListener {
     ucp_listener_h listener;
     ucp_worker_h &worker;
-    async::async_auto_reset_event<ucp_conn_request_h> task;
+    async::auto_reset_event<ucp_conn_request_h> task;
     std::coroutine_handle<> handle;
 
     static void server_conn_handle_cb(ucp_conn_request_h conn_request,
@@ -22,7 +22,7 @@ class UcpListener {
   public:
     UcpListener(ucp_worker_h &worker, std::string addr, uint16_t port = -1);
 
-    async::async_auto_reset_event<ucp_conn_request_h>& accept() { return task; }
+    async::auto_reset_event<ucp_conn_request_h>& accept() { return task; }
 
     ~UcpListener() { ucp_listener_destroy(listener); }
 };
