@@ -1,8 +1,11 @@
+#include <atomic>
+#include <cstdint>
 #include <cstdlib>
 #include <string>
 #include <thread>
 #include <ucp/api/ucp.h>
 
+#include "async/task.hpp"
 #include "fmt/core.h"
 #include "fmt/format.h"
 #include "ucp_listener.hpp"
@@ -11,17 +14,9 @@
 #include <ucp/api/ucp_def.h>
 #include <unistd.h>
 
-struct task {
-    struct promise_type {
-        task get_return_object() { return {}; }
-        std::suspend_never initial_suspend() { return {}; }
-        std::suspend_never final_suspend() noexcept { return {}; }
-        void return_void() {}
-        void unhandled_exception() {}
-    };
-};
+std::atomic_bool completed = false;
 
-task start_server(UcpListener &UcpListener) {
+task start_server(UcpListener &UcpListener, ucp_worker_h ucp_worker) {
     auto conn_request = co_await UcpListener.accept();
 
     ucp_conn_request_attr_t attr;
@@ -38,21 +33,43 @@ task start_server(UcpListener &UcpListener) {
                  "{}:{}",
                  sockaddr_get_ip_str(&attr.client_address),
                  sockaddr_get_port_str(&attr.client_address));
+
+    // retrieve endpoint
+
+    auto buf = std::array<uint64_t, 1>();
+
+    ucp_ep_h ep;
+
+    server_create_ep(ucp_worker, conn_request, &ep);
+
+    fmt::println("Server created an endpoint to the client");
+
+    auto event = recv_stream(ucp_worker, ep, std::span{buf});
+
+    co_await *event;
+
+    fmt::println("Server received a message from the client: {}", buf[0]);
+
+    completed = true;
 }
 
 int main(int argc, char **argv) {
     ucp_context_h ucp_context;
+    ucp_worker_h listener_worker;
+    {
 
-    ucp_worker_h ucp_worker;
+        init_context(&ucp_context, &listener_worker);
 
-    init_context(&ucp_context, &ucp_worker);
+        UcpListener listener(listener_worker, getenv_throw("SERVER_IP"),
+                             std::stoi(getenv_throw("SERVER_PORT")));
 
-    UcpListener listener(ucp_worker, getenv_throw("SERVER_IP"),
-                         std::stoi(getenv_throw("SERVER_PORT")));
+        start_server(listener, listener_worker);
 
-    start_server(listener);
-
-    while (true) {
-        ucp_worker_progress(ucp_worker);
+        while (!completed) {
+            ucp_worker_progress(listener_worker);
+        }
     }
+
+    ucp_worker_destroy(listener_worker);
+    ucp_cleanup(ucp_context);
 }

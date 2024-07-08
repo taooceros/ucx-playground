@@ -1,5 +1,6 @@
 #pragma once
 
+#include "fmt/core.h"
 #include <atomic>
 #include <coroutine>
 #include <functional>
@@ -11,17 +12,18 @@ template <typename T> class auto_reset_event_operation;
 
 template <typename T> class auto_reset_event {
   public:
-    auto_reset_event(bool signaled = false) : signaled_(signaled) {}
+    auto_reset_event(bool initial_signaled = false)
+        : signaled_(initial_signaled) {}
 
     auto_reset_event_operation<T> operator co_await() noexcept {
         return auto_reset_event_operation(*this);
     }
 
-    void set_or(T data,
-                std::function<void()> full_callback = nullptr) noexcept {
+    template <typename Callback = std::function<void(T)>>
+    void set_or(T data, Callback full_callback = nullptr) noexcept {
         if (signaled_) {
             if (full_callback)
-                full_callback();
+                full_callback(data);
             return;
         }
         this->data = data;
@@ -29,6 +31,7 @@ template <typename T> class auto_reset_event {
         if (waiter_handle) {
             waiter_handle.resume();
             waiter_handle = nullptr;
+            signaled_ = false;
         }
     }
 
@@ -46,8 +49,7 @@ template <typename T> class auto_reset_event_operation {
   public:
     auto_reset_event_operation() noexcept = default;
 
-    explicit auto_reset_event_operation(
-        auto_reset_event<T> &event) noexcept {
+    explicit auto_reset_event_operation(auto_reset_event<T> &event) noexcept {
         m_event = &event;
     }
 

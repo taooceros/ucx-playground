@@ -34,6 +34,7 @@
 
 #include <string.h>    /* memset */
 #include <arpa/inet.h> /* inet_addr */
+#include <ucp/api/ucp_def.h>
 #include <unistd.h>    /* getopt */
 #include <stdlib.h>    /* atoi */
 
