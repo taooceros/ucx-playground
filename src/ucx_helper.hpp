@@ -111,6 +111,8 @@ send_stream(UcpWorker &ucp_worker, UcpEndPoint &ep, T *data) {
         event->set_or(request);
 
         delete event;
+
+        ucp_request_free(request);
     };
     ucp_stream_send_nbx(ep.get(), static_cast<void *>(data), sizeof(T), &param);
 
@@ -124,7 +126,7 @@ send_stream(UcpWorker &ucp_worker, UcpEndPoint &ep, T *data) {
 
 template <typename T, size_t _Extent>
 inline async::auto_reset_event_handle<std::pair<void *, size_t>>
-recv_stream(UcpEndPoint& ep, std::span<T, _Extent> buffer) {
+recv_stream(UcpEndPoint &ep, std::span<T, _Extent> buffer) {
     ucp_request_param_t param = {};
     param.op_attr_mask |=
         UCP_OP_ATTR_FIELD_FLAGS | UCP_OP_ATTR_FIELD_USER_DATA |
@@ -155,12 +157,14 @@ recv_stream(UcpEndPoint& ep, std::span<T, _Extent> buffer) {
         event->set_or(std::make_pair(request, length));
 
         delete event;
+        
+        ucp_request_free(request);
     };
 
     size_t length = buffer.size_bytes();
 
-    auto status = ucp_stream_recv_nbx(ep.get(), buffer.data(), buffer.size_bytes(),
-                                      &length, &param);
+    auto status = ucp_stream_recv_nbx(ep.get(), buffer.data(),
+                                      buffer.size_bytes(), &length, &param);
 
     if (UCS_PTR_IS_ERR(status)) {
         fmt::println("ucp_stream_recv_nbx failed: {}",

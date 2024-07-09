@@ -17,11 +17,6 @@
 #include <ucp/api/ucp_def.h>
 #include <unistd.h>
 
-static void send_cb(void *request, ucs_status_t status, void *user_data) {
-    fmt::println("Send callback called with status: {}",
-                 ucs_status_string(status));
-}
-
 std::atomic_bool completed = false;
 
 static task start_client_worker(UcpWorker &ucp_worker, UcpEndPoint& server_ep) {
@@ -32,8 +27,6 @@ static task start_client_worker(UcpWorker &ucp_worker, UcpEndPoint& server_ep) {
     co_await event;
 
     fmt::println("Client sent a message to the server: {}", data);
-
-    std::this_thread::sleep_for(std::chrono::seconds(1));
 
     completed = true;
 }
