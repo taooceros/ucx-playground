@@ -6,6 +6,9 @@
 class UcpContext {
     ucp_context_h ucp_context;
 
+    UcpContext(const UcpContext &) = delete;
+    UcpContext &operator=(const UcpContext &) = delete;
+
     void cleanup() { ucp_cleanup(ucp_context); }
 
   public:

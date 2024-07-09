@@ -1,7 +1,9 @@
 #include <atomic>
 #include <cstdint>
 #include <cstdlib>
+#include <ratio>
 #include <string>
+#include <thread>
 #include <ucp/api/ucp.h>
 
 #include "async/task.hpp"
@@ -22,7 +24,7 @@ static void send_cb(void *request, ucs_status_t status, void *user_data) {
 
 std::atomic_bool completed = false;
 
-static task start_client_worker(UcpWorker &ucp_worker, UcpEndPoint server_ep) {
+static task start_client_worker(UcpWorker &ucp_worker, UcpEndPoint& server_ep) {
     auto data = 5;
 
     auto event = send_stream(ucp_worker, server_ep, &data);
@@ -30,6 +32,8 @@ static task start_client_worker(UcpWorker &ucp_worker, UcpEndPoint server_ep) {
     co_await event;
 
     fmt::println("Client sent a message to the server: {}", data);
+
+    std::this_thread::sleep_for(std::chrono::seconds(1));
 
     completed = true;
 }
@@ -39,8 +43,8 @@ int main(int argc, char **argv) {
 
     UcpWorker worker(context);
 
-    UcpEndPoint server_ep(worker, getenv_throw("SERVER_IP").c_str(),
-                          std::stoi(getenv_throw("SERVER_PORT")));
+    UcpEndPoint server_ep(worker, getenv_or_throw("SERVER_IP").c_str(),
+                          std::stoi(getenv_or_throw("SERVER_PORT")));
 
     // send_stream(ucp_worker, client_ep, false, 0);
 

@@ -76,7 +76,7 @@ inline void inject_timespan(std::span<uint64_t, Extent> span) {
     span[span[0]] = timestamp();
 }
 
-inline __attribute__((always_inline)) std::string getenv_throw(std::string const &key) {
+inline __attribute__((always_inline)) std::string getenv_or_throw(std::string const &key) {
     char *val = getenv(key.c_str());
     if (val == NULL) {
         throw_with_stacktrace("Environment variable {} not set", key);

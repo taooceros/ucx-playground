@@ -17,6 +17,9 @@ class UcpListener {
     async::auto_reset_event_handle<ucp_conn_request_h> task;
     std::coroutine_handle<> handle;
 
+    UcpListener(const UcpListener &) = delete;
+    UcpListener &operator=(const UcpListener &) = delete;
+
     static void server_conn_handle_cb(ucp_conn_request_h conn_request,
                                       void *arg);
 

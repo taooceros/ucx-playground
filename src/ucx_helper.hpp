@@ -123,9 +123,8 @@ send_stream(UcpWorker &ucp_worker, UcpEndPoint &ep, T *data) {
  */
 
 template <typename T, size_t _Extent>
-inline async::auto_reset_event_handle<std::pair<void *, size_t>> *
-recv_stream(ucp_worker_h ucp_worker, ucp_ep_h ep,
-            std::span<T, _Extent> buffer) {
+inline async::auto_reset_event_handle<std::pair<void *, size_t>>
+recv_stream(UcpEndPoint& ep, std::span<T, _Extent> buffer) {
     ucp_request_param_t param = {};
     param.op_attr_mask |=
         UCP_OP_ATTR_FIELD_FLAGS | UCP_OP_ATTR_FIELD_USER_DATA |
@@ -160,7 +159,7 @@ recv_stream(ucp_worker_h ucp_worker, ucp_ep_h ep,
 
     size_t length = buffer.size_bytes();
 
-    auto status = ucp_stream_recv_nbx(ep, buffer.data(), buffer.size_bytes(),
+    auto status = ucp_stream_recv_nbx(ep.get(), buffer.data(), buffer.size_bytes(),
                                       &length, &param);
 
     if (UCS_PTR_IS_ERR(status)) {
@@ -170,7 +169,7 @@ recv_stream(ucp_worker_h ucp_worker, ucp_ep_h ep,
         exit(1);
     }
 
-    return event;
+    return *event;
 }
 
 ucs_status_t server_create_ep(ucp_worker_h data_worker,

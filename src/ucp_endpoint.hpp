@@ -11,6 +11,10 @@ class UcpEndPoint {
 
     UcpEndPoint(ucp_ep_h ep) : ep(ep) {}
 
+    UcpEndPoint(const UcpEndPoint &) = delete;
+
+    UcpEndPoint &operator=(const UcpEndPoint &) = delete;
+
   public:
     UcpEndPoint(UcpWorker &worker, ucp_conn_request_h conn_request);
 
