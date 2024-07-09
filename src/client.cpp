@@ -6,6 +6,8 @@
 
 #include "async/task.hpp"
 #include "fmt/core.h"
+#include "src/ucp_context.hpp"
+#include "src/ucp_worker.hpp"
 #include "ucp_listener.hpp"
 #include "ucx_helper.hpp"
 #include <helper.hpp>
@@ -19,10 +21,10 @@ static void send_cb(void *request, ucs_status_t status, void *user_data) {
 
 std::atomic_bool completed = false;
 
-static task start_client_worker(ucp_worker_h ucp_worker, ucp_ep_h client_ep) {
+static task start_client_worker(UcpWorker &ucp_worker, ucp_ep_h client_ep) {
     auto data = 5;
 
-    auto event = send_stream(ucp_worker, client_ep, &data);
+    auto event = send_stream(ucp_worker.get(), client_ep, &data);
 
     co_await *event;
 
@@ -32,25 +34,20 @@ static task start_client_worker(ucp_worker_h ucp_worker, ucp_ep_h client_ep) {
 }
 
 int main(int argc, char **argv) {
-    ucp_context_h ucp_context;
+    UcpContext context{};
 
-    ucp_worker_h ucp_worker;
+    UcpWorker worker(context);
 
     ucp_ep_h client_ep;
 
-    init_context(&ucp_context, &ucp_worker);
-
-    create_end_point(ucp_worker, getenv_throw("SERVER_IP").c_str(),
+    create_end_point(worker, getenv_throw("SERVER_IP").c_str(),
                      std::stoi(getenv_throw("SERVER_PORT")), client_ep);
 
     // send_stream(ucp_worker, client_ep, false, 0);
 
-    start_client_worker(ucp_worker, client_ep);
+    start_client_worker(worker, client_ep);
 
     while (!completed) {
-        ucp_worker_progress(ucp_worker);
+        worker.progress();
     }
-
-    ucp_worker_destroy(ucp_worker);
-    ucp_cleanup(ucp_context);
 }

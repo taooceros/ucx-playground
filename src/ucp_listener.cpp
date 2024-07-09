@@ -1,18 +1,18 @@
 #include "ucp_listener.hpp"
 #include "fmt/core.h"
 #include "helper.hpp"
+#include "src/ucp_worker.hpp"
 #include "ucx_helper.hpp"
 #include <arpa/inet.h>
 #include <cstdio>
 #include <ucp/api/ucp_def.h>
 
 void listener_callback(ucp_conn_request_h conn_request, void *arg) {
-    auto task =
-        static_cast<async::auto_reset_event<ucp_conn_request_h> *>(arg);
+    auto task = static_cast<async::auto_reset_event<ucp_conn_request_h> *>(arg);
     task->set_or(conn_request);
 }
 
-UcpListener::UcpListener(ucp_worker_h &worker, std::string addr, uint16_t port)
+UcpListener::UcpListener(UcpWorker &worker, std::string addr, uint16_t port)
     : worker(worker) {
 
     struct sockaddr_storage listen_addr;
@@ -28,7 +28,7 @@ UcpListener::UcpListener(ucp_worker_h &worker, std::string addr, uint16_t port)
     params.conn_handler.arg = &task;
     params.conn_handler.cb = listener_callback;
 
-    auto status = ucp_listener_create(worker, &params, &listener);
+    auto status = ucp_listener_create(worker.get(), &params, &listener);
 
     if (status != UCS_OK) {
         throw_with_stacktrace("ucp_listener_create failed: {}",

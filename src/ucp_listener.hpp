@@ -2,6 +2,7 @@
 
 #include "async/ucp_task.hpp"
 #include "src/async/auto_reset_event.hpp"
+#include "src/ucp_worker.hpp"
 #include <coroutine>
 #include <cstdint>
 #include <cstring>
@@ -12,7 +13,7 @@
 
 class UcpListener {
     ucp_listener_h listener;
-    ucp_worker_h &worker;
+    UcpWorker &worker;
     async::auto_reset_event<ucp_conn_request_h> task;
     std::coroutine_handle<> handle;
 
@@ -20,9 +21,9 @@ class UcpListener {
                                       void *arg);
 
   public:
-    UcpListener(ucp_worker_h &worker, std::string addr, uint16_t port = -1);
+    UcpListener(UcpWorker &worker, std::string addr, uint16_t port = -1);
 
-    async::auto_reset_event<ucp_conn_request_h>& accept() { return task; }
+    async::auto_reset_event<ucp_conn_request_h> &accept() { return task; }
 
     ~UcpListener() { ucp_listener_destroy(listener); }
 };

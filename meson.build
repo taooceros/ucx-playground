@@ -17,7 +17,12 @@ fmt_dep = fmt_proj.get_variable('fmt_dep')
 
 deps = [ucx_dep, cpptrace_dep, libdwarf, libzstd, libz, fmt_dep]
 
-helper_src = files('src/ucx_helper.cpp', 'src/ucp_listener.cpp')
+src = files(
+    'src/ucp_listener.cpp',
+    'src/ucp_context.cpp',
+    'src/ucp_worker.cpp',
+    'src/ucx_helper.cpp',
+)
 
 executable(
     'ucp_hello_world',
@@ -32,14 +37,14 @@ executable(
 
 executable(
     'server',
-    [helper_src, 'src/server.cpp'],
+    [src, 'src/server.cpp'],
     dependencies: deps,
     include_directories: global_inc,
 )
 
 executable(
     'client',
-    [helper_src, 'src/client.cpp'],
+    [src, 'src/client.cpp'],
     dependencies: deps,
     include_directories: global_inc,
 )

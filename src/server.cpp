@@ -8,6 +8,8 @@
 #include "async/task.hpp"
 #include "fmt/core.h"
 #include "fmt/format.h"
+#include "src/ucp_context.hpp"
+#include "src/ucp_worker.hpp"
 #include "ucp_listener.hpp"
 #include "ucx_helper.hpp"
 #include <helper.hpp>
@@ -16,7 +18,7 @@
 
 std::atomic_bool completed = false;
 
-task start_server(UcpListener &UcpListener, ucp_worker_h ucp_worker) {
+task start_server(UcpListener &UcpListener, UcpWorker &ucp_worker) {
     auto conn_request = co_await UcpListener.accept();
 
     ucp_conn_request_attr_t attr;
@@ -40,11 +42,11 @@ task start_server(UcpListener &UcpListener, ucp_worker_h ucp_worker) {
 
     ucp_ep_h ep;
 
-    server_create_ep(ucp_worker, conn_request, &ep);
+    server_create_ep(ucp_worker.get(), conn_request, &ep);
 
     fmt::println("Server created an endpoint to the client");
 
-    auto event = recv_stream(ucp_worker, ep, std::span{buf});
+    auto event = recv_stream(ucp_worker.get(), ep, std::span{buf});
 
     co_await *event;
 
@@ -54,22 +56,15 @@ task start_server(UcpListener &UcpListener, ucp_worker_h ucp_worker) {
 }
 
 int main(int argc, char **argv) {
-    ucp_context_h ucp_context;
-    ucp_worker_h listener_worker;
-    {
+    UcpContext ucp_context;
+    UcpWorker listener_worker(ucp_context);
 
-        init_context(&ucp_context, &listener_worker);
+    UcpListener listener(listener_worker, getenv_throw("SERVER_IP"),
+                         std::stoi(getenv_throw("SERVER_PORT")));
 
-        UcpListener listener(listener_worker, getenv_throw("SERVER_IP"),
-                             std::stoi(getenv_throw("SERVER_PORT")));
+    start_server(listener, listener_worker);
 
-        start_server(listener, listener_worker);
-
-        while (!completed) {
-            ucp_worker_progress(listener_worker);
-        }
+    while (!completed) {
+        listener_worker.progress();
     }
-
-    ucp_worker_destroy(listener_worker);
-    ucp_cleanup(ucp_context);
 }

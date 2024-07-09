@@ -4,6 +4,7 @@
 #include "fmt/format.h"
 #include "helper.hpp"
 #include "src/async/auto_reset_event.hpp"
+#include "src/ucp_worker.hpp"
 #include <arpa/inet.h>
 #include <cassert>
 #include <cstddef>
@@ -74,7 +75,7 @@ sockaddr_get_port_str(const struct sockaddr_storage *sock_addr) {
  * Initialize the client side. Create an endpoint from the client side to be
  * connected to the remote server (to the given IP).
  */
-ucs_status_t create_end_point(ucp_worker_h ucp_worker, const char *address_str,
+ucs_status_t create_end_point(UcpWorker &ucp_worker, const char *address_str,
                               uint16_t port, ucp_ep_h &client_ep);
 
 /**

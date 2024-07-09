@@ -1,5 +1,6 @@
 
 #include "helper.hpp"
+#include "src/ucp_worker.hpp"
 #include <arpa/inet.h>
 #include <cstring>
 #include <netinet/in.h>
@@ -80,7 +81,7 @@ void set_sock_addr(const char *address_str, uint16_t port,
     sa_in.sin_port = htons(port);
 }
 
-ucs_status_t create_end_point(ucp_worker_h ucp_worker, const char *address_str,
+ucs_status_t create_end_point(UcpWorker &ucp_worker, const char *address_str,
                               uint16_t port, ucp_ep_h &client_ep) {
     ucp_ep_params_t ep_params;
     struct sockaddr_storage connect_addr;
@@ -108,7 +109,7 @@ ucs_status_t create_end_point(ucp_worker_h ucp_worker, const char *address_str,
     ep_params.sockaddr.addr = (struct sockaddr *)&connect_addr;
     ep_params.sockaddr.addrlen = sizeof(connect_addr);
 
-    status = ucp_ep_create(ucp_worker, &ep_params, &client_ep);
+    status = ucp_ep_create(ucp_worker.get(), &ep_params, &client_ep);
     if (status != UCS_OK) {
         throw_with_stacktrace("failed to connect to {} ({})\n", address_str,
                               ucs_status_string(status));
