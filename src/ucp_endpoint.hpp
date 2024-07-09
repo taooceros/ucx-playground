@@ -3,6 +3,8 @@
 #include "src/async/auto_reset_event.hpp"
 #include "src/ucp_worker.hpp"
 
+#include <cstddef>
+#include <span>
 #include <ucp/api/ucp_def.h>
 
 class UcpEndPoint {
@@ -23,14 +25,20 @@ class UcpEndPoint {
 
     ~UcpEndPoint();
 
+    template <typename T>
+    async::auto_reset_event_handle<void *> send_stream(T data) {
+        return send_stream(std::span{&data, 1});
+    }
+
     /**
      * Send and receive a message using the Stream API.
      * The client sends a message to the server and waits until the send it
      * completed. The server receives a message from the client and waits for
      * its completion.
      */
-    template <typename T>
-    inline async::auto_reset_event_handle<void *> send_stream(T *data) {
+    template <typename T, size_t _Extent>
+    async::auto_reset_event_handle<void *>
+    send_stream(std::span<T, _Extent> data_span) {
         ucp_request_param_t param{};
 
         auto event = new async::auto_reset_event_handle<void *>();
@@ -59,10 +67,16 @@ class UcpEndPoint {
 
             ucp_request_free(request);
         };
-        ucp_stream_send_nbx(ep, static_cast<void *>(data), sizeof(T),
-                            &param);
+        ucp_stream_send_nbx(ep, static_cast<void *>(data_span.data()),
+                            data_span.size_bytes(), &param);
 
         return *event;
+    }
+
+    template <typename T>
+    async::auto_reset_event_handle<std::pair<void *, size_t>>
+    recv_stream(T &buffer) {
+        return recv_stream(std::span{&buffer, 1});
     }
 
     /**
@@ -71,7 +85,7 @@ class UcpEndPoint {
      * completion.
      */
     template <typename T, size_t _Extent>
-    inline async::auto_reset_event_handle<std::pair<void *, size_t>>
+    inline async::auto_reset_event_handle<size_t>
     recv_stream(std::span<T, _Extent> buffer) {
         ucp_request_param_t param = {};
         param.op_attr_mask |=
@@ -79,16 +93,14 @@ class UcpEndPoint {
             UCP_OP_ATTR_FIELD_DATATYPE | UCP_OP_ATTR_FIELD_CALLBACK;
         // param.flags = UCP_STREAM_RECV_FLAG_WAITALL;
 
-        auto event =
-            new async::auto_reset_event_handle<std::pair<void *, size_t>>();
+        auto event = new async::auto_reset_event_handle<size_t>();
         param.datatype = ucp_dt_make_contig(1);
 
         param.user_data = event;
         /* Server receives a message from the client using the stream API */
         param.cb.recv_stream = [](void *request, ucs_status_t status,
                                   size_t length, void *user_data) {
-            auto event = static_cast<
-                async::auto_reset_event_handle<std::pair<void *, size_t>> *>(
+            auto event = static_cast<async::auto_reset_event_handle<size_t> *>(
                 user_data);
 
             if (status != UCS_OK) {
@@ -96,7 +108,7 @@ class UcpEndPoint {
                     fmt::format("recv failed: {}", ucs_status_string(status)));
             }
 
-            event->set_or(std::make_pair(request, length));
+            event->set_or(length);
 
             delete event;
 
