@@ -4,6 +4,7 @@
 #include "fmt/format.h"
 #include "helper.hpp"
 #include "src/async/auto_reset_event.hpp"
+#include "src/ucp_endpoint.hpp"
 #include "src/ucp_worker.hpp"
 #include <arpa/inet.h>
 #include <cassert>
@@ -85,11 +86,11 @@ ucs_status_t create_end_point(UcpWorker &ucp_worker, const char *address_str,
  * completion.
  */
 template <typename T>
-inline async::auto_reset_event<void *> *send_stream(ucp_worker_h ucp_worker,
-                                                    ucp_ep_h ep, T *data) {
+inline async::auto_reset_event_handle<void *>
+send_stream(UcpWorker &ucp_worker, UcpEndPoint &ep, T *data) {
     ucp_request_param_t param{};
 
-    auto event = new async::auto_reset_event<void *>();
+    auto event = new async::auto_reset_event_handle<void *>();
     param.op_attr_mask |= UCP_OP_ATTR_FIELD_USER_DATA |
                           UCP_OP_ATTR_FIELD_DATATYPE |
                           UCP_OP_ATTR_FIELD_CALLBACK;
@@ -97,8 +98,8 @@ inline async::auto_reset_event<void *> *send_stream(ucp_worker_h ucp_worker,
     param.user_data = event;
     /* Client sends a message to the server using the stream API */
     param.cb.send = [](void *request, ucs_status_t status, void *user_data) {
-        auto &event =
-            *static_cast<async::auto_reset_event<void *> *>(user_data);
+        auto event =
+            static_cast<async::auto_reset_event_handle<void *> *>(user_data);
 
         fmt::println("send_stream: status: {}", ucs_status_string(status));
 
@@ -107,11 +108,13 @@ inline async::auto_reset_event<void *> *send_stream(ucp_worker_h ucp_worker,
             return;
         }
 
-        event.set_or(request);
-    };
-    ucp_stream_send_nbx(ep, static_cast<void *>(data), sizeof(T), &param);
+        event->set_or(request);
 
-    return event;
+        delete event;
+    };
+    ucp_stream_send_nbx(ep.get(), static_cast<void *>(data), sizeof(T), &param);
+
+    return *event;
 }
 
 /**
@@ -120,7 +123,7 @@ inline async::auto_reset_event<void *> *send_stream(ucp_worker_h ucp_worker,
  */
 
 template <typename T, size_t _Extent>
-inline async::auto_reset_event<std::pair<void *, size_t>> *
+inline async::auto_reset_event_handle<std::pair<void *, size_t>> *
 recv_stream(ucp_worker_h ucp_worker, ucp_ep_h ep,
             std::span<T, _Extent> buffer) {
     ucp_request_param_t param = {};
@@ -133,25 +136,26 @@ recv_stream(ucp_worker_h ucp_worker, ucp_ep_h ep,
            (UCP_OP_ATTR_FIELD_FLAGS | UCP_OP_ATTR_FIELD_USER_DATA |
             UCP_OP_ATTR_FIELD_DATATYPE | UCP_OP_ATTR_FIELD_CALLBACK));
 
-    auto event = new async::auto_reset_event<std::pair<void *, size_t>>();
+    auto event =
+        new async::auto_reset_event_handle<std::pair<void *, size_t>>();
     param.datatype = ucp_dt_make_contig(1);
 
     param.user_data = event;
     /* Server receives a message from the client using the stream API */
     param.cb.recv_stream = [](void *request, ucs_status_t status, size_t length,
                               void *user_data) {
-        auto &event =
-            *static_cast<async::auto_reset_event<std::pair<void *, size_t>> *>(
-                user_data);
+        auto event = static_cast<
+            async::auto_reset_event_handle<std::pair<void *, size_t>> *>(
+            user_data);
 
         if (status != UCS_OK) {
             throw std::runtime_error(
                 fmt::format("recv failed: {}", ucs_status_string(status)));
         }
 
-        event.set_or(std::make_pair(request, length));
+        event->set_or(std::make_pair(request, length));
 
-        return;
+        delete event;
     };
 
     size_t length = buffer.size_bytes();

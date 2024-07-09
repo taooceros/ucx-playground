@@ -1,19 +1,22 @@
 #pragma once
 
-#include "src/ucp_listener.hpp"
+#include "src/ucp_worker.hpp"
+
 #include <ucp/api/ucp_def.h>
+
 class UcpEndPoint {
     ucp_ep_h ep;
-    ucp_worker_h &worker;
-    ucp_task<ucp_ep_h> task;
-    std::coroutine_handle<> handle;
 
     static void ep_close_cb(ucp_ep_h ep, void *arg);
 
+    UcpEndPoint(ucp_ep_h ep) : ep(ep) {}
+
   public:
-    UcpEndPoint(ucp_worker_h &worker, ucp_conn_request_h conn_request);
+    UcpEndPoint(UcpWorker &worker, ucp_conn_request_h conn_request);
 
-    ucp_task<ucp_ep_h> &connect() { return task; }
+    UcpEndPoint(UcpWorker &worker, const char *ip, int port);
 
-    ~UcpEndPoint() { ucp_ep_destroy(ep); }
+    ~UcpEndPoint();
+
+    const ucp_ep_h get() const { return ep; }
 };

@@ -8,7 +8,8 @@
 #include <ucp/api/ucp_def.h>
 
 void listener_callback(ucp_conn_request_h conn_request, void *arg) {
-    auto task = static_cast<async::auto_reset_event<ucp_conn_request_h> *>(arg);
+    auto task =
+        static_cast<async::auto_reset_event_handle<ucp_conn_request_h> *>(arg);
     task->set_or(conn_request);
 }
 

@@ -18,8 +18,9 @@ fmt_dep = fmt_proj.get_variable('fmt_dep')
 deps = [ucx_dep, cpptrace_dep, libdwarf, libzstd, libz, fmt_dep]
 
 src = files(
-    'src/ucp_listener.cpp',
     'src/ucp_context.cpp',
+    'src/ucp_endpoint.cpp',
+    'src/ucp_listener.cpp',
     'src/ucp_worker.cpp',
     'src/ucx_helper.cpp',
 )

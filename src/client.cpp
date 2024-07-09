@@ -7,6 +7,7 @@
 #include "async/task.hpp"
 #include "fmt/core.h"
 #include "src/ucp_context.hpp"
+#include "src/ucp_endpoint.hpp"
 #include "src/ucp_worker.hpp"
 #include "ucp_listener.hpp"
 #include "ucx_helper.hpp"
@@ -21,12 +22,12 @@ static void send_cb(void *request, ucs_status_t status, void *user_data) {
 
 std::atomic_bool completed = false;
 
-static task start_client_worker(UcpWorker &ucp_worker, ucp_ep_h client_ep) {
+static task start_client_worker(UcpWorker &ucp_worker, UcpEndPoint server_ep) {
     auto data = 5;
 
-    auto event = send_stream(ucp_worker.get(), client_ep, &data);
+    auto event = send_stream(ucp_worker, server_ep, &data);
 
-    co_await *event;
+    co_await event;
 
     fmt::println("Client sent a message to the server: {}", data);
 
@@ -38,14 +39,12 @@ int main(int argc, char **argv) {
 
     UcpWorker worker(context);
 
-    ucp_ep_h client_ep;
-
-    create_end_point(worker, getenv_throw("SERVER_IP").c_str(),
-                     std::stoi(getenv_throw("SERVER_PORT")), client_ep);
+    UcpEndPoint server_ep(worker, getenv_throw("SERVER_IP").c_str(),
+                          std::stoi(getenv_throw("SERVER_PORT")));
 
     // send_stream(ucp_worker, client_ep, false, 0);
 
-    start_client_worker(worker, client_ep);
+    start_client_worker(worker, server_ep);
 
     while (!completed) {
         worker.progress();
