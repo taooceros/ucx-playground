@@ -45,7 +45,7 @@ task start_server(UcpListener &UcpListener, UcpWorker &ucp_worker) {
 
     fmt::println("Server created an endpoint to the client");
 
-    auto event = recv_stream(ep, std::span{buf});
+    auto event = ep.recv_stream(std::span{buf});
 
     co_await event;
 

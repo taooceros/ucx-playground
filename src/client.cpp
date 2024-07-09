@@ -19,10 +19,10 @@
 
 std::atomic_bool completed = false;
 
-static task start_client_worker(UcpWorker &ucp_worker, UcpEndPoint& server_ep) {
+static task start_client_worker(UcpWorker &ucp_worker, UcpEndPoint &ep) {
     auto data = 5;
 
-    auto event = send_stream(ucp_worker, server_ep, &data);
+    auto event = ep.send_stream(&data);
 
     co_await event;
 
